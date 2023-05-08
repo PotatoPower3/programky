@@ -1,0 +1,209 @@
+.NOLIST
+.INCLUDE "m128def.inc"
+.LIST
+.CSEG
+
+.ORG 0x0000
+.EQU ddrKLA = DDRB
+.EQU portKLA = PORTB
+.EQU pinKLA = PINB
+
+RJMP RESET
+
+.ORG 0x001C 		;preteceni casovace 1
+JMP CHECK
+
+RESET:
+.ORG 0x0200
+CLI
+LDI R16, LOW(RAMEND) ;nastavení zásobníku
+OUT SPL, R16
+LDI R16, HIGH(RAMEND)
+OUT SPH, R16
+
+LDI R16, 0x0F 		;nastavení ovládání
+OUT ddrKLA, R16
+
+
+LDI R16, 0x02 		;preddelic casovace 1
+OUT TCCR1B, R16	;kazdych 32,768 ms
+
+LDI R16, 0x06 		;hodnota pro povoleni generovani preruseni casovacu
+OUT TIMSK, R16 	;povolení generovaní pøerušeni
+
+LDI R16, 0x00		;nastaveni 
+STS UCSR1A, R16
+LDI R16, 0x08
+STS UCSR1B, R16
+LDI R16, 0x86
+STS UCSR1C, R16
+LDI R16, 95			;nastaveni baud rate (9600 - 14,74MHz)
+STS UBRR1L,R16
+LDI R16, 0x00
+STS UBRR1H, R16
+SEI
+
+MAIN: 			;hlavni smycka
+RJMP MAIN
+				;1
+CHECK: 			;kontrola klavesnice (kazdych 32,768 ms)
+CLI
+LDI R17, 0xFE 		;aktivovani prvniho sloupce
+OUT portKLA, R17
+RCALL DELAY
+IN R17, pinKLA
+CPI R17, 0xEE 	;kontrola prvniho radku v prvnim sloupci
+BRNE CIS1 		;pokud je tlacitko aktivni tak posli hodnotu
+LDI R23, 49
+CALL LEAVE
+CALL DELAY2
+
+CIS1:			;4
+CPI R17, 0xDE 		;kontrola druheho radku v prvnim sloupci
+BRNE CIS2 		
+LDI R23, 52
+CALL LEAVE
+RCALL DELAY2
+
+CIS2:			;7
+CPI R17, 0xBE 		;kontrola tretiho radku v prvnim sloupci
+BRNE CIS10 
+LDI R23, 55
+CALL LEAVE
+RCALL DELAY2
+
+CIS10:			;a
+CPI R17, 0x7E 		;kontrola ctvrteho radku v prvnim sloupci
+BRNE CIS3 
+LDI R23, 97
+CALL LEAVE
+RCALL DELAY2
+
+CIS3:			;2
+LDI R17, 0xFD 		;aktivovani druheho sloupce
+OUT portKLA, R17
+RCALL DELAY
+IN R17, pinKLA
+CPI R17, 0xED
+BRNE CIS4
+LDI R23, 50
+CALL LEAVE
+RCALL DELAY2
+
+CIS4:			;5
+CPI R17, 0xDD
+BRNE CIS5
+LDI R23, 53
+CALL LEAVE
+RCALL DELAY2
+
+CIS5:			;8
+CPI R17, 0xBD
+BRNE CIS6
+LDI R23, 56
+CALL LEAVE
+RCALL DELAY2
+
+CIS6:			;0
+CPI R17, 0x7D
+BRNE CIS7
+LDI R23, 48
+CALL LEAVE
+RCALL DELAY2
+
+				;3
+CIS7:				;aktivovani tretiho sloupce
+LDI R17, 0xFB
+OUT portKLA, R17
+RCALL DELAY
+IN R17, pinKLA
+CPI R17, 0xEB
+BRNE CIS8
+LDI R23, 51
+CALL LEAVE
+RCALL DELAY2
+
+CIS8:			;6
+CPI R17, 0xDB
+BRNE CIS9
+LDI R23, 54
+CALL LEAVE
+RCALL DELAY2
+
+CIS9:			;9
+CPI R17, 0xBB
+BRNE CIS12
+LDI R23, 57
+CALL LEAVE
+RCALL DELAY2
+
+CIS12:			;b
+CPI R17, 0x7B
+BRNE CIS13
+LDI R23, 98
+CALL LEAVE
+RCALL DELAY2
+
+CIS13:			;f
+LDI R17, 0xF7 		;aktivovani ctvrteho sloupce
+OUT portKLA, R17
+RCALL DELAY
+IN R17, pinKLA
+CPI R17, 0xE7
+BRNE CIS14
+LDI R23, 102
+CALL LEAVE
+RCALL DELAY2
+
+CIS14:			;e
+CPI R17, 0xD7
+BRNE CIS15
+LDI R23, 101
+CALL LEAVE
+RCALL DELAY2
+
+CIS15:			;d
+CPI R17, 0xB7
+BRNE CIS16
+LDI R23, 100
+CALL LEAVE
+RCALL DELAY2
+
+CIS16:			;c
+CPI R17, 0x77
+BRNE BACK
+LDI R23, 99
+CALL LEAVE
+RCALL DELAY2
+
+BACK:
+SEI
+RETI
+
+LEAVE:
+STS UDR1, R23
+RET
+
+DELAY: 				;zpozdeni 0,5 ms
+LDI R24, 0x63 
+LDI R25, 0x0B
+ZPOZDENI:
+DEC R24
+BRNE ZPOZDENI
+DEC R25
+BRNE ZPOZDENI
+RET
+
+DELAY2:				;zpozdeni 250 ms
+LDI R26, 0xBF
+LDI R27, 0x4B
+LDI R28, 0x15
+ZPOZDENI2:
+DEC R26
+BRNE ZPOZDENI2
+DEC R27
+BRNE ZPOZDENI2
+DEC R28
+BRNE ZPOZDENI2
+RET
+
